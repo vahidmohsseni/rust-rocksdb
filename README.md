@@ -1,1 +1,1 @@
-# An implementatio of SkipList DS with Rust Lang
+# An implementation of SkipList DS with Rust Lang
