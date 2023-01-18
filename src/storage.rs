@@ -18,7 +18,7 @@ impl Storage {
             .unwrap()
             .as_micros();
 
-        let path = Path::new(path).join(format!("{}.db", timestamp.to_string()));
+        let path = Path::new(path).join(format!("{}", timestamp.to_string()));
 
         let file = OpenOptions::new().create(true).append(true).open(&path).unwrap();
 
