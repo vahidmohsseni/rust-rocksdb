@@ -85,7 +85,7 @@ mod test {
 
     use std::{path::PathBuf, time::SystemTime, io::Read};
     use rand::Rng;
-    use crate::{utils::{file_reader, create_dir, scan_dir, remove_dir}, storage};
+    use crate::utils::{file_reader, create_dir, scan_dir, remove_dir};
     use super::Storage;
 
     #[test]

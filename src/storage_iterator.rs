@@ -8,17 +8,17 @@ pub struct StorageEntry {
     deleted: bool
 }
 
-pub struct StorageReader {
+pub struct StorageIterator {
     reader: BufReader<File>,
 }
 
-impl StorageReader {
-    pub fn new(path: PathBuf) -> io::Result<StorageReader> {
+impl StorageIterator {
+    pub fn new(path: &PathBuf) -> io::Result<StorageIterator> {
         let file = OpenOptions::new()
             .read(true)
             .open(path)?;
         let reader = BufReader::new(file);
-        Ok(StorageReader { reader })
+        Ok(StorageIterator { reader })
     }
 }
 
@@ -27,7 +27,7 @@ impl StorageReader {
 // | Key size (8B) | Deleted flag (1B) | Value size (8B) | key (?B) | value (?B) | timestamp (16B) |
 // +---------------+-------------------+-----------------+----------+------------+-----------------+ 
 // 
-impl Iterator for StorageReader {
+impl Iterator for StorageIterator {
     type Item = StorageEntry;
 
     fn next(&mut self) -> Option<StorageEntry> {
@@ -69,5 +69,63 @@ impl Iterator for StorageReader {
             deleted
         })
 
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use std::time::SystemTime;
+
+    use rand::Rng;
+
+    use super::*;
+    use crate::{storage::Storage, utils::{create_dir, scan_dir, remove_dir}};
+
+    #[test]
+    fn init_memory_from_file() {
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+        
+        create_dir(&path).unwrap();
+
+        let mut storage = Storage::new(&path).unwrap();
+        
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let timestamp1 = SystemTime::now().elapsed().unwrap().as_micros(); 
+        storage.set(&key1, &value1, false, timestamp1).expect("Error: could not write in the file");
+
+
+        let key2 = b"Name".to_owned();
+        let value2 = *b"Vahid";
+        let timestamp2 = SystemTime::now().elapsed().unwrap().as_micros(); 
+        storage.set(&key2, &value2, false, timestamp2).expect("Error: could not write in the file");
+        
+        storage.commit().expect("Error: could not flush the file");
+
+        drop(storage);
+
+        let files = scan_dir(&path).expect("Error: could not scan the directory");
+
+        let mut storage_iterator = StorageIterator::new(&files[0]).unwrap();
+
+
+        let data: Vec<StorageEntry> = storage_iterator.collect();
+
+        assert_eq!(data[1].key, key2);
+
+        // Clean up
+        remove_dir(&path).unwrap();
+        
+    }
+
+
+    #[test]
+    #[should_panic]
+    fn not_found(){
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+        let _storage_iter = StorageIterator::new(&path).unwrap();
     }
 }
