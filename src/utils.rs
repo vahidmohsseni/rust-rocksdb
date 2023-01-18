@@ -1,4 +1,7 @@
-use std::{fs::{File, OpenOptions, self}, path::{Path, PathBuf}, io::{BufReader, self}};
+use std::{
+    fs::{File, OpenOptions, self}, 
+    path::{Path, PathBuf}, io::{BufReader, self}
+};
 
 
 pub(crate) fn file_reader(path: &Path) -> BufReader<File> {
