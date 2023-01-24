@@ -1,12 +1,6 @@
 use std::{io::{BufReader, self, Read}, fs::{File, OpenOptions}, path::PathBuf};
 
-
-pub struct StorageEntry {
-    key: Vec<u8>,
-    value: Option<Vec<u8>>,
-    timestamp: u128,
-    deleted: bool
-}
+use crate::entry::Entry;
 
 pub struct StorageIterator {
     reader: BufReader<File>,
@@ -28,9 +22,9 @@ impl StorageIterator {
 // +---------------+-------------------+-----------------+----------+------------+-----------------+ 
 // 
 impl Iterator for StorageIterator {
-    type Item = StorageEntry;
+    type Item = Entry;
 
-    fn next(&mut self) -> Option<StorageEntry> {
+    fn next(&mut self) -> Option<Entry> {
         let mut buffer = [0; 17];
         if self.reader.read_exact(&mut buffer).is_err() {
             return None;
@@ -62,7 +56,7 @@ impl Iterator for StorageIterator {
 
         let timestamp = u128::from_le_bytes(timestamp_buffer);
 
-        Some(StorageEntry { 
+        Some(Entry { 
             key,
             value,
             timestamp,
@@ -111,7 +105,7 @@ mod test {
         let mut storage_iterator = StorageIterator::new(&files[0]).unwrap();
 
 
-        let data: Vec<StorageEntry> = storage_iterator.collect();
+        let data: Vec<Entry> = storage_iterator.collect();
 
         assert_eq!(data[1].key, key2);
 
