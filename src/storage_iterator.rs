@@ -109,7 +109,7 @@ mod test {
 
         let files = scan_dir(&path).expect("Error: could not scan the directory");
 
-        let mut storage_iterator = StorageIterator::new(&files[0]).unwrap();
+        let storage_iterator = StorageIterator::new(&files[0]).unwrap();
 
         let data: Vec<Entry> = storage_iterator.collect();
 

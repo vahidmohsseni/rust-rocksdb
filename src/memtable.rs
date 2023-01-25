@@ -13,6 +13,19 @@ impl MemTable {
         }
     }
 
+    pub fn init_from_file(entities: Vec<Entry>) -> MemTable {
+        let mut size = 0;
+        let mut mem_table = MemTable { entities, size };
+        mem_table.restore_size();
+        mem_table
+    }
+
+    fn restore_size(&mut self){
+        for entry in &self.entities {
+            
+        }
+    }
+
     pub fn get_index(&self, key: &[u8]) -> Result<usize, usize> {
         self.entities
             .binary_search_by_key(&key, |entry| entry.key.as_slice())

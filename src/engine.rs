@@ -3,7 +3,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{entry::Entry, memtable::MemTable, storage::Storage};
+use crate::{
+    entry::Entry,
+    memtable::MemTable,
+    storage::Storage,
+    storage_iterator::{self, StorageIterator},
+};
 
 pub struct Db {
     path: PathBuf,
@@ -27,6 +32,13 @@ impl Db {
             storage,
             mem_table,
         }
+    }
+
+    pub fn init_from_file(dir: PathBuf) -> Db {
+        let mut mem_table = MemTable::new();
+        if let Ok(storage_iterator) = StorageIterator::new(&dir) {}
+
+        todo!()
     }
 
     pub fn set(&mut self, key: &[u8], value: &[u8]) -> Result<(), usize> {
