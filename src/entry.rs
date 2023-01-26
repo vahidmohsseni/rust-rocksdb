@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub struct Entry {
     pub key: Vec<u8>,
     pub value: Option<Vec<u8>>,
