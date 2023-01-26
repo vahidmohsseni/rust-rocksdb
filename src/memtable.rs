@@ -14,15 +14,22 @@ impl MemTable {
     }
 
     pub fn init_from_file(entities: Vec<Entry>) -> MemTable {
-        let mut size = 0;
+        let size = 0;
         let mut mem_table = MemTable { entities, size };
         mem_table.restore_size();
         mem_table
     }
 
-    fn restore_size(&mut self){
+    fn restore_size(&mut self) {
         for entry in &self.entities {
-            
+            match entry.value.as_ref() {
+                Some(val) => {
+                    self.size += entry.key.len() + val.len() + 16 + 1;
+                }
+                None => {
+                    self.size += entry.key.len() + 16 + 1;
+                }
+            }
         }
     }
 
@@ -90,8 +97,16 @@ impl MemTable {
 
 #[cfg(test)]
 mod test {
+    use rand::Rng;
+
+    use crate::{
+        storage::Storage,
+        storage_iterator::StorageIterator,
+        utils::{create_dir, remove_dir, scan_dir},
+    };
+
     use super::*;
-    use std::time::SystemTime;
+    use std::{path::PathBuf, time::SystemTime};
 
     #[test]
     fn check_single_add() {
@@ -171,5 +186,59 @@ mod test {
         mem_table.delete(&key2, timestamp);
 
         assert_eq!(mem_table.size, (5 + 6 + 16 + 1 + 6 + 1 + 16));
+    }
+
+    #[test]
+    fn test_init_from_file() {
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+
+        create_dir(&path).unwrap();
+
+        let mut storage = Storage::new(&path).unwrap();
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let timestamp1 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key1, &value1, false, timestamp1)
+            .expect("Error: could not write in the file");
+
+        let key2 = b"Name".to_owned();
+        let value2 = *b"Vahid";
+        let timestamp2 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key2, &value2, false, timestamp2)
+            .expect("Error: could not write in the file");
+
+        let key3 = b"gg".to_owned();
+        let value3 = *b"wp";
+        let timestamp3 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key3, &value3, false, timestamp3)
+            .expect("Error: could not write in the file");
+
+        let key4 = b"Name".to_owned();
+        let timestamp4 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .delete(&key4, timestamp4)
+            .expect("Error: could not complete delete operation");
+
+        storage.commit().expect("Error: could not flush the file");
+
+        drop(storage);
+
+        let files = scan_dir(&path).expect("Error: could not scan the directory");
+
+        let storage_iterator = StorageIterator::new(&files[0]).unwrap();
+
+        let data: Vec<Entry> = storage_iterator.collect();
+
+        let mem_table = MemTable::init_from_file(data);
+
+        assert_eq!(96, mem_table.size);
+
+        // Clean up
+        remove_dir(&path).unwrap();
     }
 }

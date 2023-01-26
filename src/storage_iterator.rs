@@ -120,6 +120,58 @@ mod test {
     }
 
     #[test]
+    fn init_memory_with_deleted_from_file() {
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+
+        create_dir(&path).unwrap();
+
+        let mut storage = Storage::new(&path).unwrap();
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let timestamp1 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key1, &value1, false, timestamp1)
+            .expect("Error: could not write in the file");
+
+        let key2 = b"Name".to_owned();
+        let value2 = *b"Vahid";
+        let timestamp2 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key2, &value2, false, timestamp2)
+            .expect("Error: could not write in the file");
+
+        let key3 = b"gg".to_owned();
+        let value3 = *b"wp";
+        let timestamp3 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key3, &value3, false, timestamp3)
+            .expect("Error: could not write in the file");
+
+        let key4 = b"Name".to_owned();
+        let timestamp4 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .delete(&key4, timestamp4)
+            .expect("Error: could not complete delete operation");
+
+        storage.commit().expect("Error: could not flush the file");
+
+        drop(storage);
+
+        let files = scan_dir(&path).expect("Error: could not scan the directory");
+
+        let storage_iterator = StorageIterator::new(&files[0]).unwrap();
+
+        let data: Vec<Entry> = storage_iterator.collect();
+
+        assert_eq!(4, data.len());
+
+        // Clean up
+        remove_dir(&path).unwrap();
+    }
+
+    #[test]
     #[should_panic]
     fn not_found() {
         let mut range = rand::thread_rng();

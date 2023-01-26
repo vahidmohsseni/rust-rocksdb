@@ -4,10 +4,7 @@ use std::{
 };
 
 use crate::{
-    entry::Entry,
-    memtable::MemTable,
-    storage::Storage,
-    storage_iterator::{self, StorageIterator},
+    entry::Entry, memtable::MemTable, storage::Storage, storage_iterator::StorageIterator,
 };
 
 pub struct Db {
