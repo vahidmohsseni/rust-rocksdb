@@ -31,6 +31,12 @@ impl Db {
         }
     }
 
+    // The logic of the engine should not include the initializing the data into the MemTable
+    // The MemTable with the corresponding deleted data should be initialized in the Storage file
+    // During the initiliation of the database from a file that already exists,
+    // It must create a new file of the database, copying the old materials and,
+    // Ignoring deleted data based-on their timestamp
+    // The above described feature can be optional.
     pub fn init_from_file(dir: PathBuf) -> Db {
         let mut mem_table = MemTable::new();
         if let Ok(storage_iterator) = StorageIterator::new(&dir) {}
