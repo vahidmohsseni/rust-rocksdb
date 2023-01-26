@@ -12,9 +12,10 @@ pub(crate) fn file_reader(path: &Path) -> BufReader<File> {
 
 #[allow(dead_code)]
 pub(crate) fn scan_dir(dir: &Path) -> io::Result<Vec<PathBuf>> {
-    let files = fs::read_dir(&dir)?
+    let mut files = fs::read_dir(&dir)?
         .map(|res| res.map(|e| e.path()))
         .collect::<Result<Vec<_>, io::Error>>()?;
+    files.sort();
     Ok(files)
 }
 
