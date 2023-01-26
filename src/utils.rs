@@ -26,6 +26,12 @@ pub(crate) fn remove_dir(dir: &Path) -> io::Result<()> {
 }
 
 #[allow(dead_code)]
+pub(crate) fn remove_file(path: &Path) -> io::Result<()> {
+    fs::remove_file(path)?;
+    Ok(())
+}
+
+#[allow(dead_code)]
 pub(crate) fn create_dir(dir: &Path) -> io::Result<()> {
     fs::create_dir(dir)?;
     Ok(())
