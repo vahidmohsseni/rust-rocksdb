@@ -1,14 +1,16 @@
 use std::{
+    io,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use crate::{
     entry::Entry, memtable::MemTable, storage::Storage, storage_iterator::StorageIterator,
+    utils::scan_dir,
 };
 
 pub struct Db {
-    path: PathBuf,
+    pub dir: PathBuf,
     mem_table: MemTable,
     storage: Storage,
 }
@@ -25,23 +27,51 @@ impl Db {
         let mem_table = MemTable::new();
 
         Db {
-            path: dir,
+            dir,
             storage,
             mem_table,
         }
     }
 
-    // The logic of the engine should not include the initializing the data into the MemTable
-    // The MemTable with the corresponding deleted data should be initialized in the Storage file
-    // During the initiliation of the database from a file that already exists,
-    // It must create a new file of the database, copying the old materials and,
-    // Ignoring deleted data based-on their timestamp
-    // The above described feature can be optional.
-    pub fn init_from_file(dir: PathBuf) -> Db {
+    pub fn init_from_existing(dir: PathBuf) -> io::Result<Db> {
         let mut mem_table = MemTable::new();
-        if let Ok(storage_iterator) = StorageIterator::new(&dir) {}
 
-        todo!()
+        let files = scan_dir(&dir)?;
+
+        for file in files {
+            let data: Vec<Entry> = StorageIterator::new(&file)?.collect();
+            for entry in data {
+                if !entry.deleted {
+                    mem_table.set_or_insert(&entry.key, &entry.value.unwrap(), entry.timestamp);
+                } else {
+                    mem_table.delete(&entry.key, entry.timestamp);
+                }
+            }
+        }
+
+        // create the new storage
+        // suggestion: can continue from the last available file
+        let mut storage = Storage::new(&dir)?;
+
+        for entry in mem_table.get_all() {
+            if !entry.deleted {
+                storage.set(
+                    &entry.key,
+                    &entry.value.as_ref().unwrap(),
+                    false,
+                    entry.timestamp,
+                )?;
+            } else {
+                storage.delete(&entry.key, entry.timestamp)?;
+            }
+        }
+        storage.commit()?;
+
+        Ok(Db {
+            dir,
+            storage,
+            mem_table,
+        })
     }
 
     pub fn set(&mut self, key: &[u8], value: &[u8]) -> Result<(), usize> {

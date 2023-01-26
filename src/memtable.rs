@@ -93,6 +93,10 @@ impl MemTable {
         }
         None
     }
+
+    pub fn get_all(&self) -> &Vec<Entry> {
+        &self.entities
+    }
 }
 
 #[cfg(test)]

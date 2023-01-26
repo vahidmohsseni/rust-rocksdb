@@ -5,21 +5,19 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{entry::Entry, memtable::MemTable};
-
 pub struct Storage {
     path: PathBuf,
     writer: BufWriter<File>,
 }
 
 impl Storage {
-    pub fn new(path: &Path) -> io::Result<Storage> {
+    pub fn new(dir: &Path) -> io::Result<Storage> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_micros();
 
-        let path = Path::new(path).join(format!("{}", timestamp.to_string()));
+        let path = Path::new(dir).join(format!("{}", timestamp.to_string()));
 
         let file = OpenOptions::new()
             .create(true)
@@ -40,12 +38,6 @@ impl Storage {
             path: path.to_path_buf(),
             writer,
         })
-    }
-
-    // This function should create a new database file when initializing the database from a db file that already exists
-    //
-    pub fn load_from_data(path: &Path, data: Vec<Entry>) -> io::Result<(MemTable, Storage)> {
-        todo!()
     }
 
     // The data layout:
