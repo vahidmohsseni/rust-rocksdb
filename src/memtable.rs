@@ -51,9 +51,11 @@ impl MemTable {
             Ok(idx) => {
                 if let Some(old_value) = self.entities[idx].value.as_ref() {
                     // Update the size of the MemTable
-                    self.size += value.len() - old_value.len()
+                    println!("self {}, val_len {}, old_val {}", self.size, value.len(), old_value.len());
+                    self.size += value.len();
+                    self.size -= old_value.len();
                 } else {
-                    self.size += value.len()
+                    self.size += value.len();
                 }
                 self.entities[idx] = entry;
             }
