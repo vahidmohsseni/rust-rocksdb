@@ -29,6 +29,7 @@ impl Storage {
         Ok(Storage { writer })
     }
 
+    #[allow(dead_code)]
     pub fn from_path(path: &Path) -> io::Result<Storage> {
         let file = OpenOptions::new().append(true).create(true).open(&path)?;
         let writer = BufWriter::new(file);

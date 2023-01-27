@@ -13,6 +13,7 @@ impl MemTable {
         }
     }
 
+    #[allow(dead_code)]
     pub fn init_from_file(entities: Vec<Entry>) -> MemTable {
         let size = 0;
         let mut mem_table = MemTable { entities, size };
