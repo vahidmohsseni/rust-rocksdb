@@ -1,12 +1,12 @@
 use std::{
     fs::{File, OpenOptions},
     io::{self, BufWriter, Write},
-    path::{Path, PathBuf},
+    path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[derive(Debug)]
 pub struct Storage {
-    path: PathBuf,
     writer: BufWriter<File>,
 }
 
@@ -27,17 +27,14 @@ impl Storage {
 
         let writer = BufWriter::new(file);
 
-        Ok(Storage { path, writer })
+        Ok(Storage { writer })
     }
 
     pub fn from_path(path: &Path) -> io::Result<Storage> {
         let file = OpenOptions::new().append(true).create(true).open(&path)?;
         let writer = BufWriter::new(file);
 
-        Ok(Storage {
-            path: path.to_path_buf(),
-            writer,
-        })
+        Ok(Storage { writer })
     }
 
     // The data layout:

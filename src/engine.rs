@@ -9,6 +9,7 @@ use crate::{
     utils::scan_dir,
 };
 
+#[derive(Debug)]
 pub struct Db {
     pub dir: PathBuf,
     mem_table: MemTable,
@@ -37,7 +38,6 @@ impl Db {
         let mut mem_table = MemTable::new();
 
         let files = scan_dir(&dir)?;
-
         for file in files {
             let data: Vec<Entry> = StorageIterator::new(&file)?.collect();
             for entry in data {
@@ -66,6 +66,10 @@ impl Db {
             }
         }
         storage.commit()?;
+
+        // now it is safe to remove old DB files
+        // todo: delete the files
+        // suggestion: this can be an option from config
 
         Ok(Db {
             dir,
@@ -214,26 +218,44 @@ mod test {
 
         let mut storage = Storage::new(&path).unwrap();
 
-        let key1 = b"Hello".to_owned();
-        let value1 = *b"RUST";
-        let timestamp1 = SystemTime::now().elapsed().unwrap().as_micros();
+        let key5 = b"Hello".to_owned();
+        let value5 = *b"RUST";
+        let timestamp5 = SystemTime::now().elapsed().unwrap().as_micros();
         storage
-            .set(&key1, &value1, false, timestamp1)
+            .set(&key5, &value5, false, timestamp5)
             .expect("Error: could not write in the file");
 
-        let key2 = b"gg".to_owned();
-        let timestamp2 = SystemTime::now().elapsed().unwrap().as_micros();
+        let key6 = b"gg".to_owned();
+        let timestamp6 = SystemTime::now().elapsed().unwrap().as_micros();
         storage
-            .delete(&key2, timestamp2)
+            .delete(&key6, timestamp6)
             .expect("Error: could not write in the file");
 
         storage.commit().unwrap();
 
         drop(storage);
 
-        let db = Db::init_from_existing(path);
-        
+        let mut db = Db::init_from_existing(path).unwrap();
+
+        // see a key exists
+        assert_eq!(b"gg".to_owned().to_vec(), db.get(&key3).unwrap().key);
+        assert_eq!(None, db.get(&key3).unwrap().value);
+
+        assert_eq!(b"Hello".to_owned().to_vec(), db.get(&key5).unwrap().key);
+        assert_eq!(
+            b"RUST".to_owned().to_vec(),
+            db.get(&key5).unwrap().value.unwrap()
+        );
+
+        // check the new storage file
+        let files = scan_dir(&db.dir).unwrap();
+        let str_iter = StorageIterator::new(&files[files.len() - 1]).unwrap();
+
+        let data: Vec<Entry> = str_iter.collect();
+
+        assert_eq!(3, data.len());
+
         // Clean up
-        // remove_dir(&path).unwrap();
+        remove_dir(&db.dir).unwrap();
     }
 }
