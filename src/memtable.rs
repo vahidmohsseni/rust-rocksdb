@@ -1,6 +1,5 @@
 use crate::entry::Entry;
 
-#[derive(Debug)]
 pub struct MemTable {
     entities: Vec<Entry>,
     size: usize,

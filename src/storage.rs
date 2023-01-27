@@ -5,7 +5,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-#[derive(Debug)]
 pub struct Storage {
     writer: BufWriter<File>,
 }
