@@ -9,6 +9,7 @@ use crate::{
     utils::scan_dir,
 };
 
+#[derive(Debug)]
 pub struct Db {
     pub dir: PathBuf,
     mem_table: MemTable,
