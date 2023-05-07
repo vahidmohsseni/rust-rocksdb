@@ -78,18 +78,14 @@ impl Db {
         })
     }
 
-    pub fn set(&mut self, key: &[u8], value: &[u8]) -> Result<(), usize> {
+    pub fn set(&mut self, key: &[u8], value: &[u8]) -> io::Result<()> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
             .as_micros();
 
-        if self.storage.set(key, value, false, timestamp).is_err() {
-            return Err(0);
-        }
-        if self.storage.commit().is_err() {
-            return Err(1);
-        }
+        self.storage.set(key, value, false, timestamp)?;
+        self.storage.commit()?;
 
         self.mem_table.set_or_insert(key, value, timestamp);
 
@@ -108,22 +104,19 @@ impl Db {
         None
     }
 
-    pub fn delete(&mut self, key: &[u8]) -> Result<(), usize> {
+    pub fn delete(&mut self, key: &[u8]) -> io::Result<()> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
             .as_micros();
-        if self.storage.delete(key, timestamp).is_err() {
-            return Err(0);
-        }
 
-        if self.storage.commit().is_err() {
-            return Err(1);
-        }
+        self.storage.delete(key, timestamp)?;
+
+        self.storage.commit()?;
 
         self.mem_table.delete(key, timestamp);
 
-        return Ok(());
+        Ok(())
     }
 }
 

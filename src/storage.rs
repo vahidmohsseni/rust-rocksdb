@@ -19,11 +19,7 @@ impl Storage {
 
         let path = Path::new(dir).join(format!("{}", timestamp.to_string()));
 
-        let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&path)
-            ?;
+        let file = OpenOptions::new().create(true).append(true).open(&path)?;
 
         let writer = BufWriter::new(file);
 
