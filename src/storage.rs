@@ -14,7 +14,7 @@ impl Storage {
     pub fn new(dir: &Path) -> io::Result<Storage> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
             .as_micros();
 
         let path = Path::new(dir).join(format!("{}", timestamp.to_string()));
@@ -23,7 +23,7 @@ impl Storage {
             .create(true)
             .append(true)
             .open(&path)
-            .unwrap();
+            ?;
 
         let writer = BufWriter::new(file);
 
