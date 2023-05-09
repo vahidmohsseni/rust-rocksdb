@@ -100,6 +100,11 @@ impl MemTable {
     pub fn get_all(&self) -> &Vec<Entry> {
         &self.entities
     }
+
+    pub fn purge_mem_table(&mut self) {
+        self.entities.clear();
+        self.size = 0;
+    }
 }
 
 #[cfg(test)]
@@ -247,5 +252,41 @@ mod test {
 
         // Clean up
         remove_dir(&path).unwrap();
+    }
+
+    #[test]
+    fn test_purge_mem() {
+        let mut mem_table = MemTable::new();
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let mut timestamp = SystemTime::now().elapsed().unwrap().as_micros();
+        mem_table.set_or_insert(&key1, &value1, timestamp);
+
+        let key2 = b"MyName".to_owned();
+        let value2 = *b"Vahid";
+        timestamp = SystemTime::now().elapsed().unwrap().as_micros();
+        mem_table.set_or_insert(&key2, &value2, timestamp);
+
+        assert_eq!(mem_table.get_index(&key2).unwrap(), 1 as usize);
+
+        timestamp = SystemTime::now().elapsed().unwrap().as_micros();
+        mem_table.delete(&key2, timestamp);
+
+        assert_eq!(mem_table.size, (5 + 6 + 16 + 1 + 6 + 1 + 16));
+
+        mem_table.purge_mem_table();
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let mut timestamp = SystemTime::now().elapsed().unwrap().as_micros();
+        mem_table.set_or_insert(&key1, &value1, timestamp);
+
+        let key2 = b"MyName".to_owned();
+        let value2 = *b"Vahid";
+        timestamp = SystemTime::now().elapsed().unwrap().as_micros();
+        mem_table.set_or_insert(&key2, &value2, timestamp);
+
+        assert_eq!(mem_table.get_index(&key2).unwrap(), 1 as usize);
     }
 }

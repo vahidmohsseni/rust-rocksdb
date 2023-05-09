@@ -5,8 +5,11 @@ use std::{
 };
 
 use crate::{
-    entry::Entry, memtable::MemTable, storage::Storage, storage_iterator::StorageIterator,
-    utils::{scan_dir, remove_file},
+    entry::Entry,
+    memtable::MemTable,
+    storage::Storage,
+    storage_iterator::StorageIterator,
+    utils::{remove_file, scan_dir},
 };
 
 #[derive(Debug)]
@@ -119,6 +122,12 @@ impl Db {
 
         self.mem_table.delete(key, timestamp);
 
+        Ok(())
+    }
+
+    pub fn purge_database(&mut self) -> io::Result<()> {
+        self.storage.purge_storage()?;
+        self.mem_table.purge_mem_table();
         Ok(())
     }
 }

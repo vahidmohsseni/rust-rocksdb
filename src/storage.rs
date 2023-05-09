@@ -1,13 +1,16 @@
 use std::{
     fs::{File, OpenOptions},
     io::{self, BufWriter, Write},
-    path::Path,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
+
+use crate::utils::remove_file;
 
 #[derive(Debug)]
 pub struct Storage {
     writer: BufWriter<File>,
+    file_path: PathBuf,
 }
 
 impl Storage {
@@ -17,21 +20,30 @@ impl Storage {
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?
             .as_micros();
 
-        let path = Path::new(dir).join(format!("{}", timestamp.to_string()));
+        let file_path = Path::new(dir).join(format!("{}", timestamp.to_string()));
 
-        let file = OpenOptions::new().create(true).append(true).open(&path)?;
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&file_path)?;
 
         let writer = BufWriter::new(file);
 
-        Ok(Storage { writer })
+        Ok(Storage { writer, file_path })
     }
 
     #[allow(dead_code)]
-    pub fn from_path(path: &Path) -> io::Result<Storage> {
-        let file = OpenOptions::new().append(true).create(true).open(&path)?;
+    pub fn from_path(file_path: &Path) -> io::Result<Storage> {
+        let file = OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(&file_path)?;
         let writer = BufWriter::new(file);
 
-        Ok(Storage { writer })
+        Ok(Storage {
+            writer,
+            file_path: file_path.to_owned(),
+        })
     }
 
     // The data layout:
@@ -73,6 +85,19 @@ impl Storage {
 
     pub fn commit(&mut self) -> io::Result<()> {
         self.writer.flush()?;
+        Ok(())
+    }
+
+    pub fn purge_storage(&mut self) -> io::Result<()> {
+        remove_file(&self.file_path)?;
+
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.file_path)?;
+        let writer = BufWriter::new(file);
+        self.writer = writer;
+
         Ok(())
     }
 }
@@ -208,6 +233,88 @@ mod test {
             .read_exact(&mut line)
             .expect("Error: could not read the file");
         assert_eq!(line[17..28], *b"HelloWorld!");
+        assert_eq!(line[94], true as u8);
+
+        // Clean up
+        remove_dir(&path).expect("Error: could not remove the directory");
+    }
+
+    #[test]
+    fn purge_test() {
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+
+        create_dir(&path).unwrap();
+
+        let mut storage = Storage::new(&path).unwrap();
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let timestamp1 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key1, &value1, false, timestamp1)
+            .expect("Error: could not writer in the file");
+
+        let key2 = b"Name".to_owned();
+        let value2 = *b"Vahid";
+        let timestamp2 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key2, &value2, false, timestamp2)
+            .expect("Error: could not writer in the file");
+
+        storage.commit().expect("Error in flush!");
+
+        let key3 = b"Hello".to_owned();
+        let timestamp3 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .delete(&key3, timestamp3)
+            .expect("Error: could not writer in the file");
+        storage.commit().expect("Error in flush!");
+
+        let mut line = [0 as u8; 124];
+
+        let files = scan_dir(&path).expect(&format!("Error: could not scan the dir: {:?}", path));
+        let mut reader = file_reader(&files[0]);
+
+        reader
+            .read_exact(&mut line)
+            .expect("Error: could not read the file");
+        assert_eq!(line[94], true as u8);
+
+        // Delete the database
+        storage.purge_storage().unwrap();
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+        let timestamp1 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key1, &value1, false, timestamp1)
+            .expect("Error: could not writer in the file");
+
+        let key2 = b"Name".to_owned();
+        let value2 = *b"Vahid";
+        let timestamp2 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .set(&key2, &value2, false, timestamp2)
+            .expect("Error: could not writer in the file");
+
+        storage.commit().expect("Error in flush!");
+
+        let key3 = b"Hello".to_owned();
+        let timestamp3 = SystemTime::now().elapsed().unwrap().as_micros();
+        storage
+            .delete(&key3, timestamp3)
+            .expect("Error: could not writer in the file");
+        storage.commit().expect("Error in flush!");
+
+        let mut line = [0 as u8; 124];
+
+        let files = scan_dir(&path).expect(&format!("Error: could not scan the dir: {:?}", path));
+        let mut reader = file_reader(&files[0]);
+
+        reader
+            .read_exact(&mut line)
+            .expect("Error: could not read the file");
         assert_eq!(line[94], true as u8);
 
         // Clean up
