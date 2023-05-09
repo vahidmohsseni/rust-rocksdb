@@ -125,6 +125,36 @@ impl Db {
         Ok(())
     }
 
+    pub fn get_snapshot(&mut self) -> Vec<u8> {
+        let entries = self.mem_table.get_all();
+        let mut snapshot: Vec<u8> = Vec::new();
+        for data in entries {
+            if !data.deleted {
+                snapshot.extend_from_slice(&(data.key.len() as u64).to_le_bytes());
+                snapshot.extend_from_slice(&(data.deleted as u8).to_le_bytes());
+                snapshot
+                    .extend_from_slice(&(data.value.as_ref().unwrap().len() as u64).to_le_bytes());
+
+                snapshot.extend_from_slice(&(data.key));
+                snapshot.extend_from_slice(&(data.value.as_ref().unwrap()));
+                snapshot.extend_from_slice(&(data.timestamp.to_le_bytes()));
+            }
+        }
+        snapshot
+    }
+
+    pub fn set_snapshot(&mut self, raw_data: Vec<u8>) -> io::Result<()> {
+        self.storage.write_all(raw_data)?;
+        let files = scan_dir(&self.dir)?;
+        let data: Vec<Entry> = StorageIterator::new(&files.last().unwrap())?.collect();
+        for entry in data {
+            self.mem_table
+                .set_or_insert(&entry.key, &entry.value.unwrap(), entry.timestamp);
+        }
+
+        Ok(())
+    }
+
     pub fn purge_database(&mut self) -> io::Result<()> {
         self.storage.purge_storage()?;
         self.mem_table.purge_mem_table();
@@ -261,6 +291,57 @@ mod test {
         assert_eq!(3, data.len());
 
         // Clean up
+        remove_dir(&db.dir).unwrap();
+    }
+
+    #[test]
+    fn snapshot_test() {
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+
+        create_dir(&path).unwrap();
+
+        let mut db = Db::new(path);
+
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+
+        db.set(&key1, &value1).unwrap();
+
+        assert_eq!(b"Hello".to_owned().to_vec(), db.get(&key1).unwrap().key);
+
+        let key2 = b"Name".to_owned();
+        let value2 = *b"Vahid";
+
+        db.set(&key2, &value2).unwrap();
+
+        assert_eq!(
+            b"Vahid".to_owned().to_vec(),
+            db.get(&key2).unwrap().value.unwrap()
+        );
+
+        db.delete(&key1).unwrap();
+
+        assert_eq!(true, db.get(&key1).unwrap().deleted);
+
+        let snapshot = db.get_snapshot();
+
+        // remove dir
+        remove_dir(&db.dir).unwrap();
+        drop(db);
+
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+        create_dir(&path).unwrap();
+        let mut db = Db::new(path);
+
+        db.set_snapshot(snapshot).unwrap();
+
+        assert_eq!(
+            b"Vahid".to_owned().to_vec(),
+            db.get(&key2).unwrap().value.unwrap()
+        );
+
+        // clean up
         remove_dir(&db.dir).unwrap();
     }
 }

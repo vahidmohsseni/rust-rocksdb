@@ -100,6 +100,12 @@ impl Storage {
 
         Ok(())
     }
+
+    pub fn write_all(&mut self, buffer: Vec<u8>) -> io::Result<()> {
+        self.writer.write_all(&buffer)?;
+        self.writer.flush()?;
+        Ok(())
+    }
 }
 
 #[cfg(test)]
