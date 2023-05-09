@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     entry::Entry, memtable::MemTable, storage::Storage, storage_iterator::StorageIterator,
-    utils::scan_dir,
+    utils::{scan_dir, remove_file},
 };
 
 #[derive(Debug)]
@@ -38,8 +38,8 @@ impl Db {
         let mut mem_table = MemTable::new();
 
         let files = scan_dir(&dir)?;
-        for file in files {
-            let data: Vec<Entry> = StorageIterator::new(&file)?.collect();
+        for file in &files {
+            let data: Vec<Entry> = StorageIterator::new(file)?.collect();
             for entry in data {
                 if !entry.deleted {
                     mem_table.set_or_insert(&entry.key, &entry.value.unwrap(), entry.timestamp);
@@ -68,8 +68,11 @@ impl Db {
         storage.commit()?;
 
         // now it is safe to remove old DB files
-        // todo: delete the files
+        // delete the files
         // suggestion: this can be an option from config
+        for file in &files {
+            remove_file(file)?;
+        }
 
         Ok(Db {
             dir,
