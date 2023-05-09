@@ -58,9 +58,9 @@ impl Storage {
         deleted: bool,
         timestamp: u128,
     ) -> io::Result<()> {
-        self.writer.write_all(&key.len().to_le_bytes())?;
+        self.writer.write_all(&(key.len() as u64).to_le_bytes())?;
         self.writer.write_all(&(deleted as u8).to_le_bytes())?;
-        self.writer.write_all(&value.len().to_le_bytes())?;
+        self.writer.write_all(&(value.len() as u64).to_le_bytes())?;
 
         self.writer.write_all(key)?;
         self.writer.write_all(value)?;
