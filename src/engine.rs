@@ -1,6 +1,4 @@
-use std::{sync::Arc, path::PathBuf, io};
-
-use tokio::sync::Mutex;
+use std::{sync::{Arc, Mutex}, path::PathBuf, io};
 
 use crate::{db::Db, entry::Entry};
 
@@ -14,34 +12,34 @@ impl DBEngine {
         Ok(Self { database: Arc::new(Mutex::new(Db::init_from_existing(dir)?)) })
     }
 
-    pub async fn set(&mut self, key: &[u8], value: &[u8]) -> io::Result<()> {
-        let mut db = self.database.lock().await;
+    pub fn set(&mut self, key: &[u8], value: &[u8]) -> io::Result<()> {
+        let mut db = self.database.lock().unwrap();
         db.set(key, value)?;
         Ok(())
     }
 
-    pub async fn get(&mut self, key: &[u8]) -> Option<Entry> {
-        let mut db = self.database.lock().await;
+    pub fn get(&mut self, key: &[u8]) -> Option<Entry> {
+        let mut db = self.database.lock().unwrap();
         db.get(key)
     }
 
-    pub async fn delete(&mut self, key: &[u8]) -> io::Result<()> {
-        let mut db = self.database.lock().await;
+    pub fn delete(&mut self, key: &[u8]) -> io::Result<()> {
+        let mut db = self.database.lock().unwrap();
         db.delete(key)
     }
 
-    pub async fn get_snapshot(&mut self) -> Vec<u8> {
-        let mut db = self.database.lock().await;
+    pub fn get_snapshot(&mut self) -> Vec<u8> {
+        let mut db = self.database.lock().unwrap();
         db.get_snapshot()
     }
 
-    pub async fn set_snapshot(&mut self, raw_data: Vec<u8>) -> io::Result<()> { 
-        let mut db = self.database.lock().await;
+    pub fn set_snapshot(&mut self, raw_data: Vec<u8>) -> io::Result<()> { 
+        let mut db = self.database.lock().unwrap();
         db.set_snapshot(raw_data)
     }
 
-    pub async fn purge_database(&mut self) -> io::Result<()> {
-        let mut db = self.database.lock().await;
+    pub fn purge_database(&mut self) -> io::Result<()> {
+        let mut db = self.database.lock().unwrap();
         db.purge_database()
     }
 }
