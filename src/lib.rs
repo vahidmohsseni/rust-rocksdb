@@ -1,4 +1,4 @@
-pub mod engine;
+pub mod db;
 mod entry;
 mod memtable;
 mod storage;
