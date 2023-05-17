@@ -9,7 +9,7 @@ use crate::{
     memtable::MemTable,
     storage::Storage,
     storage_iterator::StorageIterator,
-    utils::{remove_file, scan_dir},
+    utils::{remove_file, scan_dir, create_dir},
 };
 
 #[derive(Debug)]
@@ -40,7 +40,7 @@ impl Db {
     pub fn init_from_existing(dir: PathBuf) -> io::Result<Db> {
         let mut mem_table = MemTable::new();
 
-        let files = scan_dir(&dir)?;
+        let files = scan_dir(&dir).or_else(|e| {if let io::ErrorKind::NotFound = e.kind(){ create_dir(&dir)?; Ok(Vec::new())} else {Err(e)}})?;
         for file in &files {
             let data: Vec<Entry> = StorageIterator::new(file)?.collect();
             for entry in data {
@@ -291,6 +291,22 @@ mod test {
         assert_eq!(3, data.len());
 
         // Clean up
+        remove_dir(&db.dir).unwrap();
+    }
+
+    #[test]
+    fn test_init_from(){
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+        let mut db = Db::init_from_existing(path).unwrap();
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+
+        db.set(&key1, &value1).unwrap();
+
+        assert_eq!(b"Hello".to_owned().to_vec(), db.get(&key1).unwrap().key);
+
+        // clean up
         remove_dir(&db.dir).unwrap();
     }
 
