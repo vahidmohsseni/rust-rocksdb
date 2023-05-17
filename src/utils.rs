@@ -36,3 +36,23 @@ pub(crate) fn create_dir(dir: &Path) -> io::Result<()> {
     fs::create_dir(dir)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use crate::utils::remove_dir;
+
+    use super::{scan_dir, create_dir};
+
+
+    #[test]
+    fn test_scan_dir(){
+        let dir = PathBuf::from("test-directory".to_string());
+        create_dir(&dir).unwrap();
+        let files = scan_dir(&dir).unwrap();
+        println!("files: {:?}", files);
+        assert_eq!(files.len(), 0);
+        remove_dir(&dir).unwrap();
+    }
+}
