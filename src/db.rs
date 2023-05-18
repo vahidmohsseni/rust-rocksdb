@@ -98,6 +98,14 @@ impl Db {
         Ok(())
     }
 
+    pub fn instant_set(&mut self, entry: &mut Entry) -> io::Result<()>{
+        self.storage.set(&entry.key, entry.value.as_mut().unwrap(), entry.deleted, entry.timestamp)?;
+        self.storage.commit()?;
+
+        self.mem_table.set_or_insert(&entry.key, entry.value.as_mut().unwrap(), entry.timestamp);
+        Ok(())
+    }
+
     pub fn get(&mut self, key: &[u8]) -> Option<Entry> {
         if let Some(res) = self.mem_table.get(key) {
             return Some(Entry {
@@ -305,6 +313,34 @@ mod test {
         db.set(&key1, &value1).unwrap();
 
         assert_eq!(b"Hello".to_owned().to_vec(), db.get(&key1).unwrap().key);
+
+        // clean up
+        remove_dir(&db.dir).unwrap();
+    }
+
+    #[test]
+    fn test_instant_set(){
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+        let mut db = Db::init_from_existing(path).unwrap();
+        let key1 = b"Hello".to_owned();
+        let value1 = *b"World!";
+
+        db.set(&key1, &value1).unwrap();
+
+        assert_eq!(b"Hello".to_owned().to_vec(), db.get(&key1).unwrap().key);
+
+        let mut e = db.get(&key1).unwrap();
+        let mut new_k: Vec<u8> = Vec::new();
+        new_k.extend_from_slice("Hello1!".as_bytes());
+        e.key = new_k.to_owned();
+        let mut new_val: Vec<u8> = Vec::new();
+        new_val.extend_from_slice("Hello2u2!".as_bytes());
+        e.value = Some(new_val);
+
+        db.instant_set(&mut e).unwrap();
+
+        assert_eq!(b"Hello1!".to_owned().to_vec(), db.get(&new_k).unwrap().key);
 
         // clean up
         remove_dir(&db.dir).unwrap();

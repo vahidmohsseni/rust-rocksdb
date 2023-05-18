@@ -18,6 +18,12 @@ impl DBEngine {
         Ok(())
     }
 
+    pub fn instant_set(&mut self, entry: &mut Entry) -> io::Result<()> {
+        let mut db = self.database.lock().unwrap();
+        db.instant_set(entry)?;
+        Ok(())
+    }
+
     pub fn get(&mut self, key: &[u8]) -> Option<Entry> {
         let mut db = self.database.lock().unwrap();
         db.get(key)
