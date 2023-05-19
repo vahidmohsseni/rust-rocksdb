@@ -29,6 +29,11 @@ impl DBEngine {
         db.get(key)
     }
 
+    pub fn get_keys_with_pattern(&mut self, pattern: &[u8]) -> Vec<Entry> {
+        let mut db = self.database.lock().unwrap();
+        db.get_keys_with_pattern(pattern)
+    }
+
     pub fn delete(&mut self, key: &[u8]) -> io::Result<()> {
         let mut db = self.database.lock().unwrap();
         db.delete(key)
