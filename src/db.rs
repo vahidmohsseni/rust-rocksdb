@@ -126,6 +126,7 @@ impl Db {
                 keys.push(e.key.to_owned())
             }
         }
+        keys.sort();
         keys
     }
 
