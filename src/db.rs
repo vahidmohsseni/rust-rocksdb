@@ -118,12 +118,12 @@ impl Db {
         None
     }
 
-    pub fn get_keys_with_pattern(&mut self, pattern: &[u8]) -> Vec<Vec<u8>>{
+    pub fn get_keys_with_pattern(&mut self, pattern: &[u8]) -> Vec<Entry>{
         let entries = self.mem_table.get_all();
-        let mut keys = Vec::new();
+        let mut keys: Vec<Entry> = Vec::new();
         for e in entries {
             if e.key.starts_with(pattern) {
-                keys.push(e.key.to_owned())
+                keys.push(e.clone())
             }
         }
         keys.sort();

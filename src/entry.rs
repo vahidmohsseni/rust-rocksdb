@@ -1,7 +1,7 @@
 use bincode::{Decode, Encode};
 use bytes::BytesMut;
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Encode, Decode, PartialEq, PartialOrd, Eq, Clone)]
 pub struct Entry {
     pub key: Vec<u8>,
     pub value: Option<Vec<u8>>,
@@ -21,5 +21,11 @@ impl Entry {
             .unwrap()
             .0;
         d
+    }
+}
+
+impl Ord for Entry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.key.cmp(&other.key)
     }
 }
