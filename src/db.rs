@@ -118,6 +118,17 @@ impl Db {
         None
     }
 
+    pub fn get_keys_with_pattern(&mut self, pattern: &[u8]) -> Vec<Vec<u8>>{
+        let entries = self.mem_table.get_all();
+        let mut keys = Vec::new();
+        for e in entries {
+            if e.key.starts_with(pattern) {
+                keys.push(e.key.to_owned())
+            }
+        }
+        keys
+    }
+
     pub fn delete(&mut self, key: &[u8]) -> io::Result<()> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -313,6 +324,38 @@ mod test {
         db.set(&key1, &value1).unwrap();
 
         assert_eq!(b"Hello".to_owned().to_vec(), db.get(&key1).unwrap().key);
+
+        // clean up
+        remove_dir(&db.dir).unwrap();
+    }
+
+    #[test]
+    fn test_get_keys_from(){
+        let mut range = rand::thread_rng();
+        let path = PathBuf::from(format!("./test-{}-temp", range.gen::<u32>()));
+        let mut db = Db::init_from_existing(path).unwrap();
+
+        let pattern = b"log_".to_owned();
+        assert_eq!(0, db.get_keys_with_pattern(&pattern).len());
+
+        let key1 = b"log_1".to_owned();
+        let value1 = *b"data1!";
+        db.set(&key1, &value1).unwrap();
+
+        let key2 = b"log_2".to_owned();
+        let value2 = *b"data2!";
+        db.set(&key2, &value2).unwrap();
+
+        let key1 = b"test_log_1".to_owned();
+        let value1 = *b"test data1!";
+        db.set(&key1, &value1).unwrap();
+
+        let key2 = b"test_log_2".to_owned();
+        let value2 = *b"test data2!";
+        db.set(&key2, &value2).unwrap();
+        
+        let pattern = b"log_".to_owned();
+        assert_eq!(2, db.get_keys_with_pattern(&pattern).len());
 
         // clean up
         remove_dir(&db.dir).unwrap();
